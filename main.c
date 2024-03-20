@@ -82,10 +82,6 @@ char **sh_parse(char *line){
 
     int line_index = 0;
 
-    int token_pos = 0;
-    int token_len = 1;
-    char *token = malloc(token_len * sizeof(char)); 
-    
     int args_pos = 0;
     int args_len = 1;
     char **args = malloc(args_len * sizeof(char*));
@@ -93,20 +89,18 @@ char **sh_parse(char *line){
     if (args == NULL){
         // out of memory
         fprintf(stderr,"Error: args[] is out of memory.");
-        free(token);
         free(line);
         //free(args);
         //return NULL;
         exit(EXIT_FAILURE);
     }
 
-    args[0] = token;
-    args_pos++;
-    
     
     bool double_quote = false;
+    bool new_token = true;
     
     while (line[line_index] != '\0'){
+
         if (line[line_index] == '"'){
             double_quote = !double_quote;
             line_index++;
@@ -115,82 +109,44 @@ char **sh_parse(char *line){
 
         // in quote
         if (double_quote){
-            token[token_pos] = line[line_index];
-            token_pos++;
+            //line[line_index]='\0';
+            //new_token = true;
             line_index++;
-            char *new_token = check_string_memory(token_pos, &token_len, token);
-            if (new_token == NULL){
-                fprintf(stderr,"Error: token[] is out of memory.");
-                //free(token);
-                free(line);
-                free(args);
-                exit(EXIT_FAILURE);
-            }
-            else{
-                token = new_token;
-            }
         }
         //not in quote
         else{
-            if (line[line_index] == ' '){
-                token[token_pos]='\0';
-                token_pos++;
-                line_index++;                    
-                char *new_token = check_string_memory(token_pos, &token_len, token);
-                if (new_token == NULL){
-                    fprintf(stderr,"Error: token[] is out of memory.");
-                    //free(token);
-                    free(line);
-                    free(args);
-                    exit(EXIT_FAILURE);
-                }
-                else{
-                    token = new_token;
-                }
-                
-                args[args_pos] = token + token_pos;
+            if (line[line_index] == ' '){   // space
+                new_token = true;
+                line[line_index]='\0';
+                line_index++;
+                    
+            }
+            else if (new_token == true){ // character and new token
+                args[args_pos] = line + line_index;
                 args_pos++;
+                line_index++;
+                new_token = false;
                 if (args_pos == args_len){
                     args_len *= 2;
                     char **new_args = realloc(args, args_len * sizeof(char*));
                     if (new_args == NULL){
                         // out of memory
                         fprintf(stderr,"Error: args[] is out of memory.");
-                        free(token);
                         free(line);
                         free(args);
-                        //return NULL;
                         exit(EXIT_FAILURE);
                     }
                     else{
                         args = new_args;
                     }
                 }
-                
-                    
             }
-            else{
-                token[token_pos]=line[line_index];
-                token_pos++;
-                line_index++;
-
-                char *new_token = check_string_memory(token_pos, &token_len, token);
-                if (new_token == NULL){
-                    fprintf(stderr,"Error: token[] is out of memory.");
-                    //free(token);
-                    free(line);
-                    free(args);
-                    exit(EXIT_FAILURE);
-                }
-                else{
-                    token = new_token;
-                }
-                
+            else {  //character but not new token
+                line_index++;                
             }
         }       
     }
-    args[args_pos] = NULL;    
-    free(line);
+    args[args_pos] = NULL;
     return args;
 
 }
@@ -237,10 +193,13 @@ int sh_execute(){
 
 
 void print_args(char **args){
+    
     for (char **p = args; *p != NULL; p++){        
         printf("%s\n",*p);
         //break;
-    }//have problem just out of loop!
+    }
+    
+    //have problem just out of loop!
     //printf("%s\n",args[1]);
 }
 
@@ -255,11 +214,13 @@ void sh_loop(void){
         printf("$");
         line = sh_read_line();
         //printf("%s",line);
-        if (line == NULL)break;
+        //if (line == NULL)break;
         args = sh_parse(line);
         //free(args[0]);
+
+        print_args(args);
+        free(line);
         free(args);
-        //print_args(args);
         //status = sh_execute();
     } while(status);
 
